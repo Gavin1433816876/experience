@@ -1,0 +1,87 @@
+对于搭建SS，这配置完全够用，而且只是我一人使用，平时只浏览一些网站，上网查阅一些学习资料，视频基本没有看过，所以说500G 的流量完全绰绰有余。
+
+在搬瓦工购买VPS后，登录中 KiwiVM 控制面板，选择操作系统后，一键就可以安装SS，安装过程很快，完成后返回，就会显示这个SS的所有参数，然后下载SS客户端连接即可。
+
+进阶
+当时一键配置完SS之后，连接稳定，速度也比较满意，所以就一直没有折腾。后来，我一同学苦于上谷歌学术，无奈打不开网页，我就想着能否配置多用户，独立密码，即便分享了账号，自己也可以后台管理。
+
+具体使用的是一键安装脚本，实现多用户多端口配置。
+
+1.通过ssh等方式连接到 VPS （我使用是Xshell 5），root 账户登录，运行以下命令。
+
+wget --no-check-certificate https://raw.githubusercontent.com/teddysun/shadowsocks_install/master/shadowsocks.sh
+
+chmod +x shadowsocks.sh
+
+./shadowsocks.sh 2>&1 | tee shadowsocks.log
+安装时会提示输入要使用的端口和密码，后续可以更改。
+
+安装完成后，脚本提示如下：
+
+Congratulations, shadowsocks install completed!
+Your Server IP:your_server_ip
+Your Server Port:your_server_port
+Your Password:your_password
+Your Local IP:127.0.0.1
+Your Local Port:1080
+Your Encryption Method:aes-256-cfb
+
+Welcome to visit:https://www.banwago.com/
+Enjoy it!
+附：卸载方法
+
+使用root用户登录，运行以下命令：./shadowsocks.sh uninstall
+
+2.文件配置（配置文件路径：/etc/shadowsocks.json）
+
+单用户配置文件 Sample
+
+{
+    "server":"0.0.0.0",
+    "server_port":8989,
+    "local_address":"127.0.0.1",
+    "local_port":1080,
+    "password":"yourpassword",
+    "timeout":300,
+    "method":"aes-256-cfb",
+    "fast_open": false
+}
+多用户多端口配置文件 Sample
+
+{
+    "server":"0.0.0.0",
+    "local_address":"127.0.0.1",
+    "local_port":1080,
+    "port_password":{
+         "8989":"password0",
+         "9001":"password1",
+         "9002":"password2",
+         "9003":"password3",
+         "9004":"password4"
+    },
+    "timeout":300,
+    "method":"aes-256-cfb",
+    "fast_open": false
+}
+3.依据需求进行修改保存后，执行/etc/init.d/shadowsocks restart重启，就可以生效。
+
+附：使用命令
+
+启动：/etc/init.d/shadowsocks start
+
+停止：/etc/init.d/shadowsocks stop
+
+重启：/etc/init.d/shadowsocks restart
+
+状态：/etc/init.d/shadowsocks status
+
+结语
+在折腾过程中，虽依据此方法配置，结果多用户却却始终无法连接SS，也尝试了其他的方法，不过都相对较复杂，配置过程中很容易出现问题。
+
+后来在网上找到了原因，服务器防火墙的设置导致了配置的多用户无法连接，找出原因之后，对症下药，问题果然迎刃而解。
+
+在学习的道路上又迈出坚实的一步。
+
+
+转载Jimdo 
+原文链接：https://www.cnblogs.com/jimdo/p/8372109.html
