@@ -1,0 +1,293 @@
+shadowsocks-manager实现ss多用户管理与流量限制
+ 2018年2月22日  60条评论  4,986次阅读  6人点赞
+利用shadowsocks-manager实现shadowsocks的多用户配置和流量统计与限制。基于python版的shadowsocks，科学上网：VPS上搭建shadowsocks。可视化操作界面，动态添加用户、端口，设置流量限制，多种统计流量方式，按小时、天、月等。支持用户注册与连接多台服务器共同管理用户与限制流量。
+
+shadowsocks-manager是基于Node.js和SQLite的一个shadowsocks多用户管理与流量控制工具，当然数据库也可以使用MySQL。目前支持shadowsocks-python和shadowsocks-libev。本文以shadowsocks-python为例。
+
+ 
+
+文章目录	
+安装Node.js
+安装shadowsocks-manager
+使用shadowsocks-manager实现多用户管理与流量限制
+在网页上配置shadowsocks-manager
+安装Node.js
+需要的Node版本为Node.js 6.*，建议采用nodesource进行安装。
+
+系统为Ubuntu，安装方式：
+
+
+curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
+1
+curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
+
+sudo apt-get install -y nodejs
+1
+sudo apt-get install -y nodejs
+ 
+
+安装shadowsocks-manager
+直接用npm进行安装：
+
+
+npm i -g shadowsocks-manager
+1
+npm i -g shadowsocks-manager
+ 
+
+使用shadowsocks-manager实现多用户管理与流量限制
+1.开启shadowsocks
+
+
+ssserver -m aes-256-cfb -p 12345 -k abcedf --manager-address 127.0.0.1:6001 -d start
+1
+ssserver -m aes-256-cfb -p 12345 -k abcedf --manager-address 127.0.0.1:6001 -d start
+注意此处的提示必须是started，而不是ERROR already started at pid ***，如果是后者，就先运行ssserver -d stop。
+
+2.新建配置文件ss.yml，例如我放在~/.ssmgr路径下，内容如下：
+
+
+type: s
+
+shadowsocks:
+  address: 127.0.0.1:6001
+  # 这里的地址和端口需要跟上一步的 --manager-address 参数保持一致，连接上述 udp 端口
+manager:
+  address: 0.0.0.0:4001
+  # 这个 address 参数会让程序监听一个 tcp 端口，用于接收 webgui 发送过来的控制命令
+  password: '123456'
+db: 'ss.sqlite'
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+type: s
+ 
+shadowsocks:
+  address: 127.0.0.1:6001
+  # 这里的地址和端口需要跟上一步的 --manager-address 参数保持一致，连接上述 udp 端口
+manager:
+  address: 0.0.0.0:4001
+  # 这个 address 参数会让程序监听一个 tcp 端口，用于接收 webgui 发送过来的控制命令
+  password: '123456'
+db: 'ss.sqlite'
+3.新建配置文件webgui.yml，作为webgui这个插件的配置文件，内容如下：
+
+
+type: m
+
+manager:
+  address: 45.77.58.123:4001
+  # 这里换成manager所在的服务器的ip
+  password: '123456'
+  # 这部分的端口和密码需要跟上一步 manager 参数里的保持一致，以连接 type s 部分监听的 tcp 端口
+plugins:
+  flowSaver:
+    use: true
+  user:
+    use: true
+  account:
+    use: true
+  macAccount:
+    use: true
+  email:
+    use: true
+    type: 'smtp'
+    username: 'username'
+    password: 'password'
+    host: 'smtp.your-email.com'
+    # 这部分的邮箱和密码是用于发送注册验证邮件，重置密码邮件
+  webgui:
+    use: true
+    host: '0.0.0.0'
+    port: '80'
+    site: 'http://yourwebsite.com'
+    # cdn: 'http://xxx.com' # 静态资源cdn地址，可省略
+    # icon: 'icon.png' # 自定义首页图标，默认路径在 ~/.ssmgr 可省略
+    # googleAnalytics: 'UA-xxxxxxxx-x' # Google Analytics ID，可省略
+    # gcmSenderId: '456102641793' # gcmSenderId 、gcmAPIKey 这两个是Chrome推送用的
+    # gcmAPIKey: 'AAAAGzzdqrE:XXXXXXXXXXXXXX'
+  webgui_telegram:
+    # telegram 机器人的配置，可省略
+    use: true
+    token: '191374681:AAw6oaVPR4nnY7T4CtW78QX-Xy2Q5WD3wmZ'
+  alipay:
+    # 如果不使用支付宝，这段可以去掉
+    use: true
+    appid: 2015012108272442
+    notifyUrl: 'http://yourwebsite.com/api/user/alipay/callback'
+    merchantPrivateKey: 'xxxxxxxxxxxx'
+    alipayPublicKey: 'xxxxxxxxxxx'
+    gatewayUrl: 'https://openapi.alipay.com/gateway.do'
+  paypal:
+    # 如果不使用paypal，这段可以去掉
+    use: true
+    mode: 'live' # sandbox or live
+    client_id: 'At9xcGd1t5L6OrICKNnp2g9'
+    client_secret: 'EP40s6pQAZmqp_G_nrU9kKY4XaZph'
+
+db: 'webgui.sqlite'
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+type: m
+ 
+manager:
+  address: 45.77.58.123:4001
+  # 这里换成manager所在的服务器的ip
+  password: '123456'
+  # 这部分的端口和密码需要跟上一步 manager 参数里的保持一致，以连接 type s 部分监听的 tcp 端口
+plugins:
+  flowSaver:
+    use: true
+  user:
+    use: true
+  account:
+    use: true
+  macAccount:
+    use: true
+  email:
+    use: true
+    type: 'smtp'
+    username: 'username'
+    password: 'password'
+    host: 'smtp.your-email.com'
+    # 这部分的邮箱和密码是用于发送注册验证邮件，重置密码邮件
+  webgui:
+    use: true
+    host: '0.0.0.0'
+    port: '80'
+    site: 'http://yourwebsite.com'
+    # cdn: 'http://xxx.com' # 静态资源cdn地址，可省略
+    # icon: 'icon.png' # 自定义首页图标，默认路径在 ~/.ssmgr 可省略
+    # googleAnalytics: 'UA-xxxxxxxx-x' # Google Analytics ID，可省略
+    # gcmSenderId: '456102641793' # gcmSenderId 、gcmAPIKey 这两个是Chrome推送用的
+    # gcmAPIKey: 'AAAAGzzdqrE:XXXXXXXXXXXXXX'
+  webgui_telegram:
+    # telegram 机器人的配置，可省略
+    use: true
+    token: '191374681:AAw6oaVPR4nnY7T4CtW78QX-Xy2Q5WD3wmZ'
+  alipay:
+    # 如果不使用支付宝，这段可以去掉
+    use: true
+    appid: 2015012108272442
+    notifyUrl: 'http://yourwebsite.com/api/user/alipay/callback'
+    merchantPrivateKey: 'xxxxxxxxxxxx'
+    alipayPublicKey: 'xxxxxxxxxxx'
+    gatewayUrl: 'https://openapi.alipay.com/gateway.do'
+  paypal:
+    # 如果不使用paypal，这段可以去掉
+    use: true
+    mode: 'live' # sandbox or live
+    client_id: 'At9xcGd1t5L6OrICKNnp2g9'
+    client_secret: 'EP40s6pQAZmqp_G_nrU9kKY4XaZph'
+ 
+db: 'webgui.sqlite'
+4.启动shadowsocks-manager（我直接使用screen启动了，如果要调试，自行取消screen -dmS ssmgr/webgui）
+
+
+screen -dmS ssmgr ssmgr -c ~/.ssmgr/ss.yml
+
+screen -dmS webgui ssmgr -c ~/.ssmgr/webgui.yml
+1
+2
+3
+screen -dmS ssmgr ssmgr -c ~/.ssmgr/ss.yml
+ 
+screen -dmS webgui ssmgr -c ~/.ssmgr/webgui.yml
+启动时我遇到这个错误Error: Cannot find module ‘/usr/lib/node_modules/shadowsocks-manager/node_modules/sqlite3/lib/binding/node-v48-linux-x64/node_sqlite3.node’，Google之作者的回复是由于网络原因安装失败，建议我们重新安装试试：
+
+
+npm uninstall -g shadowsocks-manager
+
+npm install -g shadowsocks-manager
+1
+2
+3
+npm uninstall -g shadowsocks-manager
+ 
+npm install -g shadowsocks-manager
+但是我重新安装了几次都没有成功，最后的解决方法是是：
+
+
+cd /usr/lib/node_modules/shadowsocks-manager/
+
+npm install sqlite3 --save
+1
+2
+3
+cd /usr/lib/node_modules/shadowsocks-manager/
+ 
+npm install sqlite3 --save
+ 
+
+在网页上配置shadowsocks-manager
+按照第二部分配置好之后，打开http://yourwebsite.com就可以看到注册界面了，首次注册的账号即为管理员~
+
+《shadowsocks-manager实现ss多用户管理与流量限制》
+
+如上图所示，shadowsocks-manager可以实现shadowsocks新用户注册，用户管理，账号管理（端口配置&流量限制），甚至可以将多台服务器一起管理起来，实现多台服务器的shadowsocks流量限制与用户管理。
+
+原创声明
+该日志由 flyzy小站 于2018年02月22日发表在shadowsocks分类下， 你可以发表评论，并在保留原文地址及作者的情况下转载到你的网站或博客。 
+转载请注明: shadowsocks-manager实现ss多用户管理与流量限制 | flyzy小站
+关键字: shadowsock, shadowsocks-manager, 多用户, 科学上网
+
+
+原文链接：https://www.flyzy2005.com/fan-qiang/shadowsocks/shadowsocks-manager-config/#respond
